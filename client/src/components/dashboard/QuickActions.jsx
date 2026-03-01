@@ -1,27 +1,20 @@
-import { useNavigate } from 'react-router-dom';
-import { MessageCircleHeart, SmilePlus, CalendarHeart, ArrowRight } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import { MessageCircleHeart, SmilePlus, ArrowRight } from "lucide-react";
 
 const actions = [
   {
     icon: MessageCircleHeart,
-    label: 'Talk to AI',
-    description: 'Have a supportive conversation',
-    accent: 'text-emerald-400',
-    to: '/chat',
+    label: "Talk to AI",
+    description: "Have a supportive conversation",
+    accent: "text-emerald-400",
+    to: "/chat",
   },
   {
     icon: SmilePlus,
-    label: 'Log Mood',
-    description: 'Record how you feel right now',
-    accent: 'text-mint-300',
-    to: '/mood',
-  },
-  {
-    icon: CalendarHeart,
-    label: 'Book Session',
-    description: 'Connect with a counselor',
-    accent: 'text-emerald-300',
-    to: '/counselor',
+    label: "Log Mood",
+    description: "Record how you feel right now",
+    accent: "text-mint-300",
+    to: "/mood",
   },
 ];
 
@@ -41,9 +34,15 @@ const QuickActions = () => {
               transition-all duration-200 text-left flex-1
               focus:outline-none focus:ring-2 focus:ring-forest-600"
           >
-            <action.icon size={18} className={action.accent} strokeWidth={1.8} />
+            <action.icon
+              size={18}
+              className={action.accent}
+              strokeWidth={1.8}
+            />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-text-primary">{action.label}</p>
+              <p className="text-sm font-medium text-text-primary">
+                {action.label}
+              </p>
               <p className="text-xs text-text-muted">{action.description}</p>
             </div>
             <ArrowRight

@@ -39,14 +39,28 @@ export const getOidcClient = async () => {
   }
 };
 
-export const buildGoogleAuthUrl = async (nonce, state) => {
-  const client = await getOidcClient();
-  return client.authorizationUrl({
-    scope: "openid email profile",
+// Builds a Cognito Hosted UI URL for Google sign-in.
+// Uses the /oauth2/authorize endpoint (NOT the OIDC endpoint) because
+// identity_provider=Google is a Cognito-specific Hosted UI parameter.
+// Requires COGNITO_DOMAIN in .env  e.g: https://mindspace.auth.ap-south-1.amazoncognito.com
+export const buildGoogleAuthUrl = (state) => {
+  const domain = process.env.COGNITO_DOMAIN;
+  const clientId = process.env.COGNITO_CLIENT_ID;
+  const redirectUri = process.env.COGNITO_REDIRECT_URI;
+
+  if (!domain)
+    throw new Error("COGNITO_DOMAIN is not set in environment variables.");
+
+  const params = new URLSearchParams({
     identity_provider: "Google",
+    redirect_uri: redirectUri,
+    response_type: "code",
+    client_id: clientId,
+    scope: "openid email profile",
     state,
-    nonce,
   });
+
+  return `${domain}/oauth2/authorize?${params.toString()}`;
 };
 
 export { CognitoUserAttribute, AuthenticationDetails, CognitoUser, generators };

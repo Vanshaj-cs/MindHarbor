@@ -1,10 +1,16 @@
-import { Sparkles } from 'lucide-react';
+import { Sparkles } from "lucide-react";
+import { useAuth } from "../../context/Authcontext";
 
-const WelcomeCard = ({ name = 'Vatsal' }) => {
+const WelcomeCard = () => {
+  const { user } = useAuth();
+
   const hour = new Date().getHours();
-  let greeting = 'Good morning';
-  if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
-  else if (hour >= 17) greeting = 'Good evening';
+  let greeting = "Good morning";
+  if (hour >= 12 && hour < 17) greeting = "Good afternoon";
+  else if (hour >= 17) greeting = "Good evening";
+
+  // Use first name only for greeting
+  const firstName = user?.fullName?.split(" ")[0] || user?.username || "there";
 
   return (
     <div>
@@ -15,7 +21,7 @@ const WelcomeCard = ({ name = 'Vatsal' }) => {
       <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-text-primary tracking-tight leading-tight">
         {greeting},
         <br />
-        {name} 👋
+        {firstName} 👋
       </h1>
       <p className="text-base text-text-secondary mt-4 max-w-lg leading-relaxed">
         Take a moment to check in with yourself today. Your well-being matters,
