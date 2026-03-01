@@ -5,7 +5,16 @@ const MoodEntrySchema = new mongoose.Schema(
     score: { type: Number, min: 1, max: 10, required: true },
     label: {
       type: String,
-      enum: ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"],
+      enum: [
+        "very_sad",
+        "sad",
+        "neutral",
+        "happy",
+        "very_happy",
+        "anxious",
+        "stressed",
+        "calm",
+      ],
     },
     note: { type: String, maxlength: 500 },
     detectedVia: {
@@ -61,7 +70,7 @@ const UserSchema = new mongoose.Schema(
       name: String,
       studentId: String,
       department: String,
-      yearOfStudy: Number,
+      passoutYear: Number,
     },
 
     // ── Preferences ───────────────────────────────────────────────────────────

@@ -63,7 +63,7 @@ const EditProfileModal = ({ isOpen, onClose, user, onSaved }) => {
     username: user.username || "",
     institutionName: user.institution?.name || "",
     institutionDepartment: user.institution?.department || "",
-    institutionYear: String(user.institution?.yearOfStudy || ""),
+    institutionPassoutYear: String(user.institution?.passoutYear || ""),
     institutionStudentId: user.institution?.studentId || "",
   });
   const [loading, setLoading] = useState(false);
@@ -95,8 +95,8 @@ const EditProfileModal = ({ isOpen, onClose, user, onSaved }) => {
         institution: {
           name: form.institutionName.trim() || undefined,
           department: form.institutionDepartment.trim() || undefined,
-          yearOfStudy: form.institutionYear
-            ? Number(form.institutionYear)
+          passoutYear: form.institutionPassoutYear
+            ? Number(form.institutionPassoutYear)
             : undefined,
           studentId: form.institutionStudentId.trim() || undefined,
         },
@@ -188,11 +188,11 @@ const EditProfileModal = ({ isOpen, onClose, user, onSaved }) => {
                 placeholder="Computer Science"
               />
               <Field
-                label="Year of Study"
-                name="institutionYear"
-                value={form.institutionYear}
+                label="Passout Year"
+                name="institutionPassoutYear"
+                value={form.institutionPassoutYear}
                 onChange={handleChange}
-                placeholder="3"
+                placeholder="2027"
                 type="number"
               />
             </div>
@@ -264,15 +264,15 @@ const Profile = () => {
       : {};
   const institutionName = inst.name ? String(inst.name).trim() : null;
   const department = inst.department ? String(inst.department).trim() : null;
-  const yearOfStudy = inst.yearOfStudy ? String(inst.yearOfStudy) : null;
+  const passoutYear = inst.passoutYear ? String(inst.passoutYear) : null;
   const studentId = inst.studentId ? String(inst.studentId).trim() : null;
 
   // Build sub-label for hero (e.g. "Computer Science, Year 3 · IIT Delhi")
   const institutionSubline =
     [
-      department && yearOfStudy
-        ? `${department}, Year ${yearOfStudy}`
-        : department || (yearOfStudy ? `Year ${yearOfStudy}` : null),
+      department && passoutYear
+        ? `${department}, Batch ${passoutYear}`
+        : department || (passoutYear ? `Batch ${passoutYear}` : null),
       institutionName,
     ]
       .filter(Boolean)
@@ -404,7 +404,7 @@ const Profile = () => {
                     </p>
                     <p className="text-sm text-text-primary mt-0.5">
                       {department
-                        ? `${department}${yearOfStudy ? `, Year ${yearOfStudy}` : ""}`
+                        ? `${department}${passoutYear ? `, Batch ${passoutYear}` : ""}`
                         : "—"}
                     </p>
                   </div>
