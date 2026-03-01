@@ -11,6 +11,9 @@ const verifyAccessToken = async (token) => {
   // Decode without verification first to get the sub quickly in dev
   // The OIDC client will still validate via userinfo endpoint
   const decoded = jwt.decode(token);
+  console.log("DECODED TOKEN:", JSON.stringify(decoded, null, 2));
+  console.log("RAW TOKEN LENGTH:", token?.length);
+  console.log("RAW TOKEN START:", token?.substring(0, 50));
   if (!decoded || !decoded.sub) throw new Error("Invalid token structure");
 
   // Optionally call userinfo to fully validate (uncomment for stricter checks)

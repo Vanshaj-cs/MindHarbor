@@ -7,6 +7,7 @@ import session from "express-session";
 
 import connectDB from "./config/database.js";
 import authRoutes from "./routes/authRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 import errorHandler from "./middleware/errorHandler.js";
 
 const app = express();
@@ -30,6 +31,7 @@ app.use(cookieParser());
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use("/api/auth", authRoutes);
+app.use("/api/chat", chatRoutes);
 
 // ── Health Check ──────────────────────────────────────────────────────────────
 app.get("/health", (_req, res) =>
