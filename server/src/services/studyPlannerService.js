@@ -1,6 +1,6 @@
-// src/services/studyPlannerService.js
 import { GoogleGenAI } from "@google/genai";
 import { addDays, format, parseISO } from "date-fns";
+import { fetchImageAsBase64 } from "./cloudinaryService.js";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -8,23 +8,28 @@ const TIMEZONE = "Asia/Kolkata";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  MAIN EXPORT: generate full study plan
+//  If syllabusImageUrl is provided, Gemini receives it as an actual image part
+//  so it can READ and EXTRACT text from the image itself.
+//  syllabusText is used as fallback/supplement if image extraction is partial.
 // ─────────────────────────────────────────────────────────────────────────────
 export const generateStudyPlan = async ({
   syllabusText,
-  syllabusImageUrl,
+  syllabusImageUrl, // Cloudinary URL — we fetch this as base64 for Gemini
   totalDays,
   hoursPerDay,
   startDate,
 }) => {
   const totalHours = totalDays * hoursPerDay;
-  const imageNote = syllabusImageUrl
-    ? `\nThe syllabus was also provided as an image: ${syllabusImageUrl}\n`
-    : "";
 
-  const prompt = `You are an expert academic study planner. Analyze the following syllabus and create a structured, realistic study plan.
-${imageNote}
-SYLLABUS:
-${syllabusText}
+  const textPart = {
+    text: `You are an expert academic study planner.
+
+${
+  syllabusImageUrl
+    ? "A syllabus image is attached above. Extract all topics and subtopics from it."
+    : ""
+}
+${syllabusText ? `SYLLABUS TEXT:\n${syllabusText}` : ""}
 
 CONSTRAINTS:
 - Total days available: ${totalDays}
@@ -59,11 +64,37 @@ Respond ONLY with a valid JSON object in this EXACT structure (no markdown, no e
   ],
   "revisionDays": [<day numbers>],
   "tips": ["study tip 1", "study tip 2"]
-}`;
+}`,
+  };
 
+  // ── Build contents array: [imagePart?, textPart] ───────────────────────────
+  const contents = [];
+
+  if (syllabusImageUrl) {
+    try {
+      const { base64, contentType } =
+        await fetchImageAsBase64(syllabusImageUrl);
+      // Gemini inline_data part — this is how Gemini actually sees the image
+      contents.push({
+        inlineData: {
+          data: base64,
+          mimeType: contentType,
+        },
+      });
+    } catch (err) {
+      console.warn(
+        "[Planner] Could not fetch image for Gemini, falling back to text only:",
+        err.message,
+      );
+    }
+  }
+
+  contents.push(textPart);
+
+  // ── Call Gemini with image + text ─────────────────────────────────────────
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: prompt,
+    contents: [{ role: "user", parts: contents }],
   });
 
   const rawText = response.text.trim();
@@ -146,7 +177,7 @@ const sanitize = (str) =>
 // ─────────────────────────────────────────────────────────────────────────────
 //  CALENDAR EVENTS  (RFC3339 with IST +05:30)
 // ─────────────────────────────────────────────────────────────────────────────
-const generateCalendarEvents = (studyPlan, startDate, hoursPerDay) => {
+const generateCalendarEvents = (studyPlan, startDate) => {
   const events = [];
   const base = parseISO(startDate);
 
@@ -200,7 +231,7 @@ const generateCalendarEvents = (studyPlan, startDate, hoursPerDay) => {
       currentMinute = currentMinute % 60;
     });
 
-    // All-day marker for the day
+    // All-day marker
     events.push({
       summary: `🗓️ Day ${day.day}: ${day.focus || "Study Session"}`,
       description: `Total: ${day.totalHours}h | Topics: ${day.topics.map((t) => t.topic).join(", ")}`,

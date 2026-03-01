@@ -2,6 +2,10 @@ import StudyPlan from "../models/StudyPlan.js";
 import GoogleToken from "../models/GoogleToken.js";
 import { generateStudyPlan } from "../services/studyPlannerService.js";
 import {
+  uploadImageBuffer,
+  deleteImage,
+} from "../services/cloudinaryService.js";
+import {
   getAuthUrl,
   exchangeCodeAndSave,
   insertCalendarEvents,
@@ -13,36 +17,75 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  POST /api/planner/generate-plan
-//  Body: { syllabusText, syllabusImageUrl?, totalDays, hoursPerDay, startDate }
+//
+//  Accepts multipart/form-data with:
+//    - syllabusText     (string, optional if image provided)
+//    - syllabusImage    (file,   optional if text provided)
+//    - totalDays        (number)
+//    - hoursPerDay      (number)
+//    - startDate        (YYYY-MM-DD)
+//
+//  Flow:
+//    1. If image uploaded → push buffer to Cloudinary → get URL
+//    2. Pass URL to studyPlannerService → service fetches base64 → sends to Gemini
+//    3. Gemini reads image + text → returns structured plan JSON
 // ─────────────────────────────────────────────────────────────────────────────
 export const generatePlan = asyncHandler(async (req, res) => {
-  const { syllabusText, syllabusImageUrl, totalDays, hoursPerDay, startDate } =
-    req.body;
+  const { syllabusText, totalDays, hoursPerDay, startDate } = req.body;
 
-  if (!syllabusText?.trim())
-    throw new ApiError(400, "syllabusText is required.");
-  if (!totalDays || totalDays < 1)
-    throw new ApiError(400, "totalDays must be at least 1.");
-  if (!hoursPerDay || hoursPerDay < 1)
-    throw new ApiError(400, "hoursPerDay must be at least 1.");
+  // Must provide at least one of text or image
+  if (!syllabusText?.trim() && !req.file) {
+    throw new ApiError(
+      400,
+      "Provide syllabusText, a syllabusImage file, or both.",
+    );
+  }
+  if (!totalDays) throw new ApiError(400, "totalDays is required.");
+  if (!hoursPerDay) throw new ApiError(400, "hoursPerDay is required.");
   if (!startDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
-    throw new ApiError(400, "startDate must be in YYYY-MM-DD format.");
+    throw new ApiError(400, "startDate must be YYYY-MM-DD.");
   }
 
-  const { studyPlan, flowchartMermaid, calendarEvents } =
-    await generateStudyPlan({
-      syllabusText: syllabusText.trim(),
-      syllabusImageUrl: syllabusImageUrl || null,
+  // ── Step 1: Upload image to Cloudinary if provided ────────────────────────
+  let syllabusImageUrl = null;
+  let cloudinaryPublicId = null;
+
+  if (req.file) {
+    try {
+      const uploaded = await uploadImageBuffer(
+        req.file.buffer,
+        req.file.mimetype,
+      );
+      syllabusImageUrl = uploaded.url;
+      cloudinaryPublicId = uploaded.publicId;
+    } catch (err) {
+      throw new ApiError(500, `Image upload failed: ${err.message}`);
+    }
+  }
+
+  // ── Step 2: Generate plan (Gemini reads image + text) ─────────────────────
+  let studyPlan, flowchartMermaid, calendarEvents;
+  try {
+    ({ studyPlan, flowchartMermaid, calendarEvents } = await generateStudyPlan({
+      syllabusText: syllabusText?.trim() || "",
+      syllabusImageUrl, // Cloudinary URL → service fetches as base64 for Gemini
       totalDays: Number(totalDays),
       hoursPerDay: Number(hoursPerDay),
       startDate,
-    });
+    }));
+  } catch (err) {
+    // Clean up Cloudinary upload if Gemini fails
+    if (cloudinaryPublicId) {
+      await deleteImage(cloudinaryPublicId).catch(() => {});
+    }
+    throw new ApiError(502, `Plan generation failed: ${err.message}`);
+  }
 
-  // Persist in MongoDB
+  // ── Step 3: Persist in MongoDB ────────────────────────────────────────────
   const plan = await StudyPlan.create({
     userId: req.user._id,
-    syllabusText: syllabusText.trim(),
-    syllabusImage: syllabusImageUrl || null,
+    syllabusText: syllabusText?.trim() ?? "",
+    syllabusImage: syllabusImageUrl,
     totalDays: Number(totalDays),
     hoursPerDay: Number(hoursPerDay),
     startDate,
@@ -56,6 +99,7 @@ export const generatePlan = asyncHandler(async (req, res) => {
       201,
       {
         planId: plan._id,
+        syllabusImageUrl,
         studyPlan,
         flowchartMermaid,
         calendarEvents,
@@ -68,10 +112,8 @@ export const generatePlan = asyncHandler(async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  GET /api/planner/auth/google
-//  Redirects user to Google OAuth consent screen
 // ─────────────────────────────────────────────────────────────────────────────
 export const googleAuthRedirect = asyncHandler(async (req, res) => {
-  // Embed userId in state param so we can link tokens to user after callback
   const state = Buffer.from(
     JSON.stringify({ userId: req.user._id.toString() }),
   ).toString("base64");
@@ -81,7 +123,6 @@ export const googleAuthRedirect = asyncHandler(async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  GET /api/planner/auth/google/callback
-//  Google redirects here with ?code=...&state=...
 // ─────────────────────────────────────────────────────────────────────────────
 export const googleAuthCallback = asyncHandler(async (req, res) => {
   const { code, state, error } = req.query;
@@ -90,7 +131,6 @@ export const googleAuthCallback = asyncHandler(async (req, res) => {
   if (!code) throw new ApiError(400, "Authorization code missing.");
   if (!state) throw new ApiError(400, "State parameter missing.");
 
-  // Decode userId from state
   let userId;
   try {
     const decoded = JSON.parse(
@@ -102,27 +142,22 @@ export const googleAuthCallback = asyncHandler(async (req, res) => {
   }
 
   await exchangeCodeAndSave(code, userId);
-
-  // Redirect back to frontend with success flag
   return res.redirect(`${process.env.CLIENT_URL}/planner?googleConnected=true`);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  POST /api/planner/calendar/sync
-//  Body: { planId } — inserts the plan's events into Google Calendar
 // ─────────────────────────────────────────────────────────────────────────────
 export const syncToCalendar = asyncHandler(async (req, res) => {
   const { planId } = req.body;
   if (!planId) throw new ApiError(400, "planId is required.");
 
-  // Verify plan belongs to user
   const plan = await StudyPlan.findById(planId);
   if (!plan) throw new ApiError(404, "Study plan not found.");
   if (plan.userId.toString() !== req.user._id.toString()) {
     throw new ApiError(403, "Access denied.");
   }
 
-  // Check Google is connected
   const tokenDoc = await GoogleToken.findOne({ userId: req.user._id });
   if (!tokenDoc) {
     throw new ApiError(
@@ -131,19 +166,16 @@ export const syncToCalendar = asyncHandler(async (req, res) => {
     );
   }
 
-  // If already synced before, delete old events first (clean re-sync)
   if (plan.syncedToCalendar && plan.calendarEventIds?.length) {
     await deleteCalendarEvents(req.user._id, plan.calendarEventIds);
   }
 
-  // Insert all events
   const { inserted, failed } = await insertCalendarEvents(
     req.user._id,
     plan.calendarEvents,
   );
-
-  // Save Google event IDs for future re-sync / deletion
   const eventIds = inserted.map((e) => e.eventId);
+
   await StudyPlan.findByIdAndUpdate(planId, {
     syncedToCalendar: true,
     calendarEventIds: eventIds,
@@ -168,12 +200,11 @@ export const syncToCalendar = asyncHandler(async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  GET /api/planner/plans
-//  List all plans for the logged-in user
 // ─────────────────────────────────────────────────────────────────────────────
 export const getPlans = asyncHandler(async (req, res) => {
   const plans = await StudyPlan.find({ userId: req.user._id })
     .select(
-      "studyPlan.title totalDays hoursPerDay startDate syncedToCalendar syncedAt createdAt",
+      "studyPlan.title totalDays hoursPerDay startDate syllabusImage syncedToCalendar syncedAt createdAt",
     )
     .sort({ createdAt: -1 })
     .lean();
@@ -183,7 +214,6 @@ export const getPlans = asyncHandler(async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  GET /api/planner/plans/:planId
-//  Get a single full plan
 // ─────────────────────────────────────────────────────────────────────────────
 export const getPlan = asyncHandler(async (req, res) => {
   const plan = await StudyPlan.findById(req.params.planId).lean();
@@ -197,7 +227,6 @@ export const getPlan = asyncHandler(async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  GET /api/planner/google/status
-//  Check if user has Google Calendar connected
 // ─────────────────────────────────────────────────────────────────────────────
 export const googleStatus = asyncHandler(async (req, res) => {
   const tokenDoc = await GoogleToken.findOne({ userId: req.user._id });

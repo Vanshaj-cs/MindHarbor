@@ -13,50 +13,48 @@ import {
 
 import { protect } from "../middleware/verifyToken.js";
 import { validate } from "../middleware/validate.js";
+import {
+  uploadSyllabusImage,
+  handleUploadError,
+} from "../middleware/uploadMiddleware.js";
 
 const router = Router();
 
-// ── Generate Plan (protected) ─────────────────────────────────────────────────
+// ── Generate Plan ─────────────────────────────────────────────────────────────
 // POST /api/planner/generate-plan
+// Content-Type: multipart/form-data
+// Fields:
+//   syllabusImage  (file)   — image/pdf of your syllabus (optional if syllabusText given)
+//   syllabusText   (string) — raw syllabus text          (optional if image given)
+//   totalDays      (number)
+//   hoursPerDay    (number)
+//   startDate      (YYYY-MM-DD)
 router.post(
   "/generate-plan",
   protect,
+  uploadSyllabusImage, // multer: parse multipart, put file in req.file
+  handleUploadError, // convert multer errors → ApiError
   [
-    body("syllabusText")
-      .trim()
-      .notEmpty()
-      .withMessage("syllabusText is required"),
     body("totalDays")
       .isInt({ min: 1, max: 365 })
-      .withMessage("totalDays: 1–365"),
+      .withMessage("totalDays must be between 1 and 365"),
     body("hoursPerDay")
       .isFloat({ min: 0.5, max: 16 })
-      .withMessage("hoursPerDay: 0.5–16"),
+      .withMessage("hoursPerDay must be between 0.5 and 16"),
     body("startDate")
       .matches(/^\d{4}-\d{2}-\d{2}$/)
       .withMessage("startDate must be YYYY-MM-DD"),
-    body("syllabusImageUrl")
-      .optional()
-      .isURL()
-      .withMessage("Invalid image URL"),
   ],
   validate,
   generatePlan,
 );
 
-// ── Google OAuth (protected — user must be logged in to link their calendar) ──
-
-// GET /api/planner/auth/google  →  redirect to Google consent screen
+// ── Google OAuth ──────────────────────────────────────────────────────────────
 router.get("/auth/google", protect, googleAuthRedirect);
-
-// GET /api/planner/auth/google/callback  →  Google redirects here (no protect — no cookie yet)
-router.get("/auth/google/callback", googleAuthCallback);
-
-// GET /api/planner/google/status  →  is Google Calendar connected?
+router.get("/auth/google/callback", googleAuthCallback); // no protect — no cookie yet
 router.get("/google/status", protect, googleStatus);
 
-// ── Calendar Sync (protected) ─────────────────────────────────────────────────
-// POST /api/planner/calendar/sync
+// ── Calendar Sync ─────────────────────────────────────────────────────────────
 router.post(
   "/calendar/sync",
   protect,
@@ -66,11 +64,7 @@ router.post(
 );
 
 // ── Plan CRUD ─────────────────────────────────────────────────────────────────
-
-// GET /api/planner/plans
 router.get("/plans", protect, getPlans);
-
-// GET /api/planner/plans/:planId
 router.get(
   "/plans/:planId",
   protect,

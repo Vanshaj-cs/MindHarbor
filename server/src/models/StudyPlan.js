@@ -21,7 +21,7 @@ const StudyPlanSchema = new mongoose.Schema(
     },
 
     // Original inputs
-    syllabusText: { type: String, required: true },
+    syllabusText: { type: String, default: "" },
     syllabusImage: { type: String }, // Cloudinary URL (optional)
     totalDays: { type: Number, required: true },
     hoursPerDay: { type: Number, required: true },
