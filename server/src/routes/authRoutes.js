@@ -19,6 +19,7 @@ import {
 
 import { protect } from "../middleware/verifyToken.js";
 import { validate } from "../middleware/validate.js";
+import { errorHandler } from "../middleware/error.middleware.js";
 
 const router = Router();
 
@@ -84,4 +85,5 @@ router.get("/me", protect, getMe);
 router.patch("/me", protect, updateProfile);
 router.delete("/me", protect, deleteAccount);
 
+router.use(errorHandler);
 export default router;

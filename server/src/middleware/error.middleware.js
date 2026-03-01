@@ -1,6 +1,6 @@
 import { ApiError } from "../utils/apiError.js";
 
-export const errorMiddleware = (err, req, res, next) => {
+export const errorHandler = (err, _req, res, _next) => {
 	console.error("GLOBAL ERROR:", err);
 
 	if (err instanceof ApiError) {
