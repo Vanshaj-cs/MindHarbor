@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Send,
   Plus,
@@ -10,6 +10,9 @@ import {
   Loader2,
   History,
   Smile,
+  LogOut,
+  BarChart2,
+  CheckCircle2,
 } from "lucide-react";
 import ChatBubble from "../components/chat/ChatBubble";
 import SuggestedPrompts from "../components/chat/SuggestedPrompts";
@@ -17,6 +20,7 @@ import TypingIndicator from "../components/chat/TypingIndicator";
 import CrisisAlert from "../components/chat/CrisisAlert";
 import { useAuth } from "../context/Authcontext";
 import { chatService } from "../services/chatService";
+import { analyticsService } from "../services/analyticsService.js";
 
 const crisisKeywords = [
   "suicide",
@@ -38,6 +42,18 @@ const moodEmoji = (label) =>
     anxious: "😟",
     stressed: "😤",
   })[label] ?? "💬";
+
+// ── Normalize raw NLP score (-3 to +3) → 0–10 ────────────────────────────────
+const normalizeScore = (score) =>
+  Math.min(Math.max(((score + 3) / 6) * 10, 0), 10).toFixed(1);
+
+// ── Score colour ──────────────────────────────────────────────────────────────
+const scoreColor = (normalized) => {
+  const n = parseFloat(normalized);
+  if (n >= 7) return "text-emerald-400";
+  if (n >= 4) return "text-amber-400";
+  return "text-red-400";
+};
 
 // ── Convert DB message shape → display shape ──────────────────────────────────
 const toDisplay = (msg) => ({
@@ -96,10 +112,104 @@ const SessionItem = ({ session, isActive, onClick, onDelete }) => {
   );
 };
 
+// ── Session Result Modal ──────────────────────────────────────────────────────
+const SessionResultModal = ({ result, onViewAnalytics, onNewChat }) => {
+  const normalized = normalizeScore(result.mentalScore);
+  const color = scoreColor(normalized);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-surface-card border border-forest-700/40 rounded-2xl p-6 mx-4 w-full max-w-sm shadow-2xl animate-slide-up">
+        {/* Icon */}
+        <div className="flex justify-center mb-4">
+          <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center">
+            <CheckCircle2 size={28} className="text-white" />
+          </div>
+        </div>
+
+        <h3 className="text-lg font-bold text-text-primary text-center mb-1">
+          Session Complete
+        </h3>
+        <p className="text-xs text-text-muted text-center mb-5">
+          Here's a snapshot of your wellness this session
+        </p>
+
+        {/* Score */}
+        <div className="bg-forest-800/40 rounded-xl px-4 py-4 mb-3 text-center">
+          <p className="text-xs text-text-muted uppercase tracking-wider mb-1">
+            Wellness Score
+          </p>
+          <p className={`text-4xl font-bold ${color}`}>
+            {normalized}
+            <span className="text-lg text-text-muted font-normal">/10</span>
+          </p>
+          <p className="text-xs text-text-muted mt-1">
+            raw: {result.mentalScore?.toFixed(4)}
+          </p>
+        </div>
+
+        {/* Emotion + Status */}
+        <div className="grid grid-cols-2 gap-2 mb-5">
+          <div className="bg-forest-800/30 rounded-xl px-3 py-2.5 text-center">
+            <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1">
+              Dominant Emotion
+            </p>
+            <p className="text-sm font-semibold text-text-primary capitalize">
+              {result.dominantEmotion || "—"}
+            </p>
+          </div>
+          <div className="bg-forest-800/30 rounded-xl px-3 py-2.5 text-center">
+            <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1">
+              Status
+            </p>
+            <p
+              className={`text-sm font-semibold capitalize ${
+                result.isCrisis ? "text-red-400" : "text-emerald-400"
+              }`}
+            >
+              {result.status || "—"}
+            </p>
+          </div>
+        </div>
+
+        {/* Crisis nudge */}
+        {result.isCrisis && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+            <p className="text-xs text-red-300 text-center leading-relaxed">
+              We noticed you may be going through a hard time. Please consider
+              reaching out to a professional. You're not alone. 💙
+            </p>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={onViewAnalytics}
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl
+              gradient-primary text-white text-sm font-medium hover:opacity-90 transition-opacity"
+          >
+            <BarChart2 size={15} />
+            View Analytics
+          </button>
+          <button
+            onClick={onNewChat}
+            className="w-full py-2.5 rounded-xl bg-forest-700/50 hover:bg-forest-700
+              text-emerald-300 text-sm font-medium transition-colors"
+          >
+            Start New Chat
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── Main Component ────────────────────────────────────────────────────────────
 const AIChat = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const moodContext = location.state?.moodContext;
 
   // Session
@@ -117,6 +227,10 @@ const AIChat = () => {
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [error, setError] = useState("");
   const [initialised, setInitialised] = useState(false);
+
+  // End session
+  const [isEndingSession, setIsEndingSession] = useState(false);
+  const [sessionResult, setSessionResult] = useState(null);
 
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
@@ -165,13 +279,13 @@ const AIChat = () => {
     setError("");
     setMessages([]);
     setActiveSessionId(null);
+    setSessionResult(null);
     try {
       const res = await chatService.startSession();
       const sessionId = res.data.sessionId;
       setActiveSessionId(sessionId);
       setShowPrompts(true);
 
-      // Show welcome message locally (not in DB yet)
       setMessages([
         {
           id: "welcome",
@@ -184,7 +298,6 @@ const AIChat = () => {
         },
       ]);
 
-      // Refresh sidebar
       const updated = await loadSessions();
       setSessions(updated);
     } catch (err) {
@@ -192,7 +305,7 @@ const AIChat = () => {
     }
   }, [firstName, loadSessions]);
 
-  // ── Initial load: fetch sessions, open latest or start fresh ───────────────
+  // ── Initial load ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (initialised) return;
     setInitialised(true);
@@ -200,7 +313,6 @@ const AIChat = () => {
     (async () => {
       const list = await loadSessions();
 
-      // If mood context is provided, start a new session
       if (moodContext) {
         await startNewSession();
       } else if (list.length === 0) {
@@ -212,11 +324,10 @@ const AIChat = () => {
     })();
   }, []); // eslint-disable-line
 
-  // ── Auto-send mood message when session is ready ────────────────────────────
+  // ── Auto-send mood message ──────────────────────────────────────────────────
   useEffect(() => {
     if (moodContext && activeSessionId && !isTyping && messages.length <= 1) {
       const moodMessage = `I'm feeling ${moodContext.label.toLowerCase()} right now ${moodContext.emoji}. Can you help me talk about it?`;
-      // Small delay to ensure UI is ready
       const timer = setTimeout(() => {
         sendMessage(moodMessage);
       }, 800);
@@ -246,6 +357,32 @@ const AIChat = () => {
     [activeSessionId, sessions, loadSession, startNewSession],
   );
 
+  // ── End session → trigger NLP → show result ──────────────────────────────────
+  const handleEndSession = useCallback(async () => {
+    if (!activeSessionId || isEndingSession || isTyping) return;
+
+    // Need at least one user message to analyze
+    const userMsgCount = messages.filter((m) => m.isUser).length;
+    if (userMsgCount === 0) {
+      setError("Send at least one message before ending the session.");
+      return;
+    }
+
+    setIsEndingSession(true);
+    setError("");
+    try {
+      const res = await analyticsService.endSession(activeSessionId);
+      // res.data = { sessionId, mentalScore, dominantEmotion, confidence, status, isCrisis }
+      setSessionResult(res.data);
+      // Refresh sidebar so session shows as inactive
+      loadSessions();
+    } catch (err) {
+      setError("Could not analyze session. Please try again.");
+    } finally {
+      setIsEndingSession(false);
+    }
+  }, [activeSessionId, isEndingSession, isTyping, messages, loadSessions]);
+
   // ── Send a message ──────────────────────────────────────────────────────────
   const sendMessage = useCallback(
     async (text) => {
@@ -266,7 +403,6 @@ const AIChat = () => {
       setShowPrompts(false);
       setError("");
 
-      // Crisis detection
       if (crisisKeywords.some((kw) => text.toLowerCase().includes(kw))) {
         setShowCrisis(true);
       }
@@ -286,7 +422,6 @@ const AIChat = () => {
             }),
           },
         ]);
-        // Refresh sidebar so title + count update
         loadSessions();
       } catch (err) {
         setMessages((prev) => [
@@ -323,9 +458,24 @@ const AIChat = () => {
     }
   };
 
+  // Whether the active session has user messages (enables End Session)
+  const hasUserMessages = messages.some((m) => m.isUser);
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+      {/* ── Session result modal ─────────────────────────────────────────── */}
+      {sessionResult && (
+        <SessionResultModal
+          result={sessionResult}
+          onViewAnalytics={() => navigate("/analytics")}
+          onNewChat={() => {
+            setSessionResult(null);
+            startNewSession();
+          }}
+        />
+      )}
+
       {/* ── Session history sidebar ──────────────────────────────────────── */}
       <aside
         className={`shrink-0 flex flex-col
@@ -409,6 +559,31 @@ const AIChat = () => {
             </div>
           </div>
 
+          {/* End Session button — only when there are user messages */}
+          {hasUserMessages && (
+            <button
+              onClick={handleEndSession}
+              disabled={isEndingSession || isTyping}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl
+                bg-red-500/15 hover:bg-red-500/25 text-red-400
+                text-xs font-medium transition-all duration-200
+                disabled:opacity-50 disabled:cursor-not-allowed"
+              title="End session and get wellness score"
+            >
+              {isEndingSession ? (
+                <>
+                  <Loader2 size={13} className="animate-spin" />
+                  Analyzing…
+                </>
+              ) : (
+                <>
+                  <LogOut size={13} />
+                  End Session
+                </>
+              )}
+            </button>
+          )}
+
           <button
             onClick={startNewSession}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl
@@ -419,6 +594,23 @@ const AIChat = () => {
             New chat
           </button>
         </div>
+
+        {/* Analyzing banner */}
+        {isEndingSession && (
+          <div
+            className="mx-5 lg:mx-6 mt-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20
+            flex items-center gap-2 shrink-0 animate-slide-up"
+          >
+            <Loader2
+              size={14}
+              className="text-emerald-400 shrink-0 animate-spin"
+            />
+            <p className="text-xs text-emerald-300 flex-1">
+              Analyzing your messages one by one — calculating your wellness
+              score…
+            </p>
+          </div>
+        )}
 
         {/* Crisis alert */}
         {showCrisis && (
@@ -498,7 +690,9 @@ const AIChat = () => {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Type your message..."
-                  disabled={!activeSessionId || loadingSession}
+                  disabled={
+                    !activeSessionId || loadingSession || isEndingSession
+                  }
                   className="flex-1 px-4 py-2.5 bg-surface-card rounded-xl
                     text-sm text-text-primary placeholder:text-text-muted
                     focus:outline-none focus:ring-2 focus:ring-forest-600
@@ -511,7 +705,8 @@ const AIChat = () => {
                     !input.trim() ||
                     isTyping ||
                     !activeSessionId ||
-                    loadingSession
+                    loadingSession ||
+                    isEndingSession
                   }
                   className="p-2.5 rounded-xl gradient-primary text-white
                     hover:opacity-90 transition-opacity duration-200
