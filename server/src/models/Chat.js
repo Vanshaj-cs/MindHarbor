@@ -40,6 +40,10 @@ const ChatSessionSchema = new mongoose.Schema(
     title: { type: String, default: "New Session" },
 
     isActive: { type: Boolean, default: true },
+    mentalScore: { type: Number, default: null },
+    dominantEmotion: { type: String, default: null },
+    emotionConfidence: { type: Number, default: null },
+    distressStatus: { type: String, default: null },
   },
   { timestamps: true },
 );
