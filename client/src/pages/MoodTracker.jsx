@@ -55,6 +55,11 @@ const MoodTracker = () => {
 
       // Update logs with the saved mood
       setLogs((prev) => [saved.data, ...prev]);
+
+      // Dispatch custom event to notify Topbar
+      window.dispatchEvent(
+        new CustomEvent("moodUpdated", { detail: saved.data }),
+      );
     } catch (err) {
       console.error("Failed to save mood:", err);
     }
@@ -91,6 +96,9 @@ const MoodTracker = () => {
       value: data.mood,
       confidence: data.confidence,
     });
+
+    // Dispatch custom event to notify Topbar
+    window.dispatchEvent(new CustomEvent("moodUpdated", { detail: moodEntry }));
   };
 
   return (

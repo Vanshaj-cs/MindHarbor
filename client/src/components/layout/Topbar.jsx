@@ -3,33 +3,60 @@ import { Bell, Menu, LogOut, User, Settings, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Avatar from "../common/Avatar";
 import { useAuth } from "../../context/Authcontext";
+import { moodService } from "../../services/moodService";
+
+const emojiMap = {
+  Angry: "😡",
+  Disgust: "🤢",
+  Fear: "😨",
+  Happy: "😊",
+  Neutral: "😐",
+  Sad: "😔",
+  Surprise: "😲",
+};
 
 const Topbar = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [recentMood, setRecentMood] = useState(null);
+  const [loadingMood, setLoadingMood] = useState(true);
   const dropdownRef = useRef(null);
 
-  const latestMood = user?.moodHistory?.length
-    ? user.moodHistory[user.moodHistory.length - 1]
-    : null;
+  // Fetch recent mood from API
+  useEffect(() => {
+    const fetchRecentMood = async () => {
+      try {
+        const response = await moodService.getMoods();
+        const moods = response.data.data || [];
+        if (moods.length > 0) {
+          setRecentMood(moods[0]); // Most recent mood
+        }
+      } catch (error) {
+        console.error("Failed to fetch recent mood:", error);
+      } finally {
+        setLoadingMood(false);
+      }
+    };
 
-  const moodEmoji = latestMood
-    ? ({
-        very_happy: "😊",
-        happy: "😊",
-        calm: "😌",
-        neutral: "😐",
-        sad: "😔",
-        very_sad: "😢",
-        anxious: "😟",
-        stressed: "😤",
-      }[latestMood.label] ?? "😌")
-    : "😌";
+    if (user) {
+      fetchRecentMood();
+    }
+  }, [user]);
 
-  const moodText = latestMood
-    ? latestMood.label.replace("_", " ")
-    : "No mood logged";
+  // Listen for mood updates
+  useEffect(() => {
+    const handleMoodUpdate = (event) => {
+      setRecentMood(event.detail);
+    };
+
+    window.addEventListener("moodUpdated", handleMoodUpdate);
+    return () => window.removeEventListener("moodUpdated", handleMoodUpdate);
+  }, []);
+
+  const moodEmoji = recentMood ? emojiMap[recentMood.label] || "😐" : "😌";
+
+  const moodText = recentMood ? recentMood.label : "No mood logged";
 
   useEffect(() => {
     const handler = (e) => {
