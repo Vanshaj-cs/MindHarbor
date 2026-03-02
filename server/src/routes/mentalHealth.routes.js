@@ -24,15 +24,16 @@ const router = Router();
 // router.use(protect);
 
 // Analysis
-router.post("/analyze", validate(assessmentValidators), analyzeMentalHealth);
+router.post("/analyze", ...assessmentValidators, validate, analyzeMentalHealth);
 
 // Reports
 router.get(
 	"/reports",
-	validate([
+	...[
 		query("page").optional().isInt({ min: 1 }).toInt(),
 		query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
-	]),
+	],
+	validate,
 	getMentalHealthReports,
 );
 router.get("/reports/:id", getMentalHealthReport);
@@ -41,14 +42,16 @@ router.get("/reports/:id/pdf", downloadReportPDF);
 // Email
 router.post(
 	"/email-report",
-	validate(emailReportValidators),
+	...emailReportValidators,
+	validate,
 	emailMentalHealthReport,
 );
 
 // Progress
 router.post(
 	"/progress",
-	validate(moduleProgressValidators),
+	...moduleProgressValidators,
+	validate,
 	saveModuleProgress,
 );
 router.get("/progress", getModuleProgress);

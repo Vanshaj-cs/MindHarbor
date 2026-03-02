@@ -8,8 +8,8 @@ import {
 import { authService } from "../services/authService";
 
 const initialState = {
-  user: null,
-  loading: true,
+  user: "abcdefg", // Placeholder user data for testing
+  loading: false,
   error: null,
 };
 

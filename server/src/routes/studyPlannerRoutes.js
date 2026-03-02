@@ -2,20 +2,20 @@ import { Router } from "express";
 import { body, param } from "express-validator";
 
 import {
-  generatePlan,
-  googleAuthRedirect,
-  googleAuthCallback,
-  syncToCalendar,
-  getPlans,
-  getPlan,
-  googleStatus,
+    generatePlan,
+    googleAuthRedirect,
+    googleAuthCallback,
+    syncToCalendar,
+    getPlans,
+    getPlan,
+    googleStatus,
 } from "../controllers/studyPlannerController.js";
 
 import { protect } from "../middleware/verifyToken.js";
 import { validate } from "../middleware/validate.js";
 import {
-  uploadSyllabusImage,
-  handleUploadError,
+    uploadSyllabusImage,
+    handleUploadError,
 } from "../middleware/uploadMiddleware.js";
 
 const router = Router();

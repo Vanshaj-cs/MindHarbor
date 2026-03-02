@@ -6,7 +6,7 @@ import cookieParser from "cookie-parser";
 import session from "express-session";
 
 import connectDB from "./config/database.js";
-import authRoutes from "./routes/auth.routes.js";
+import authRoutes from "./routes/authRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import studyPlannerRoutes from "./routes/studyPlannerRoutes.js";
 import errorHandler from "./middleware/errorHandler.js";
@@ -14,7 +14,6 @@ import moodRoutes from "./routes/mood.routes.js";
 import mentalHealthRoutes from "./routes/mentalHealth.routes.js";
 
 const app = express();
-
 // ── Session (only used during Google OAuth flow to hold nonce + state) ─────────
 app.use(
   session({

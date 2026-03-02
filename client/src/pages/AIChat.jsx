@@ -309,7 +309,7 @@ const AIChat = () => {
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
       {/* ── Session history sidebar ──────────────────────────────────────── */}
       <aside
-        className={`flex-shrink-0 flex flex-col
+        className={`shrink-0 flex flex-col
           bg-surface-card/60 backdrop-blur-sm border-r border-forest-700/30
           transition-all duration-300 overflow-hidden
           ${sidebarOpen ? "w-60" : "w-0"}`}

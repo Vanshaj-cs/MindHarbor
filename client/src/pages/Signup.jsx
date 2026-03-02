@@ -104,7 +104,7 @@ const VerifyStep = ({ email, onSuccess }) => {
   };
 
   return (
-    <div className="w-full max-w-[360px] animate-fade-in">
+    <div className="w-full max-w-90 animate-fade-in">
       <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center mb-5">
         <Mail size={22} className="text-emerald-400" />
       </div>
@@ -393,7 +393,7 @@ const Signup = () => {
           <h1 className="text-lg font-bold text-text-primary">Mind Harbor</h1>
         </div>
 
-        <div className="w-full max-w-[360px]">
+        <div className="w-full max-w-90">
           <h2 className="text-2xl font-bold text-text-primary mb-1">
             Create account
           </h2>
@@ -445,7 +445,6 @@ const Signup = () => {
                   name="fullName"
                   value={form.fullName}
                   onChange={handleChange}
-                  placeholder="Vatsal Sharma"
                   autoComplete="name"
                   className="w-full pl-10 pr-4 py-2.5 bg-surface-card rounded-xl
                     text-sm text-text-primary placeholder:text-text-muted
@@ -471,7 +470,6 @@ const Signup = () => {
                   name="username"
                   value={form.username}
                   onChange={handleChange}
-                  placeholder="vatsal_s"
                   autoComplete="username"
                   className="w-full pl-10 pr-4 py-2.5 bg-surface-card rounded-xl
                     text-sm text-text-primary placeholder:text-text-muted
@@ -497,7 +495,6 @@ const Signup = () => {
                   name="email"
                   value={form.email}
                   onChange={handleChange}
-                  placeholder="you@university.edu"
                   autoComplete="email"
                   className="w-full pl-10 pr-4 py-2.5 bg-surface-card rounded-xl
                     text-sm text-text-primary placeholder:text-text-muted

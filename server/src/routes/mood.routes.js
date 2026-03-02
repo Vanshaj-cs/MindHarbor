@@ -6,7 +6,15 @@ import { saveMood, getMoodHistory, getRecentMood, analyzeMood } from '../control
 const router = Router();
 
 // Protect all mood routes with authentication
-router.use(protect);
+// router.use(protect);
+
+router.use((req, _res, next) => {
+    req.user = {
+        id: '69a3f39595dfb484c40d5ca1'
+        
+     }; // Mock user for testing
+    next();
+});
 
 // Mood tracking routes
 router.post('/', saveMood);
