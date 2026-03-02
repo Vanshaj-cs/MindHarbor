@@ -11,6 +11,7 @@ import AIChat from "./pages/AIChat";
 import MoodTracker from "./pages/MoodTracker";
 import Resources from "./pages/Resources";
 import Analytics from "./pages/Analytics";
+import StudyPlanner from "./pages/StudyPlanner";
 // Placeholder pages (replace with real ones as you build them)
 const ComingSoon = ({ title }) => (
   <div className="flex items-center justify-center h-96">
@@ -45,10 +46,7 @@ const App = () => {
               path="counselor"
               element={<ComingSoon title="Counselor Booking" />}
             />
-            <Route
-              path="/planner"
-              element={<ComingSoon title="Study Planner" />}
-            />
+            <Route path="/planner" element={<StudyPlanner />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
