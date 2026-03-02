@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindHarbor Mental Health Report</title>
+
+  <style>
+    /* ── Reset & Base ── */
+    body { margin: 0; padding: 0; background: #f1f5f9; font-family: 'Segoe UI', Roboto, Arial, sans-serif; color: #1e293b; }
+    .email-container { max-width: 680px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+
+    /* ── Header ── */
+    .header { background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 32px 24px; text-align: center; color: #fff; }
+    .header h1 { margin: 0 0 4px; font-size: 24px; }
+    .header p  { margin: 0; font-size: 14px; opacity: .85; }
+    .logo { font-size: 28px; vertical-align: middle; margin-right: 6px; }
+
+    /* ── Content ── */
+    .content { padding: 28px 24px; }
+
+    /* ── Report Meta ── */
+    .report-meta { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+    .report-meta h3 { margin: 0 0 16px; font-size: 16px; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .meta-item { display: flex; flex-direction: column; }
+    .meta-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 2px; }
+    .meta-value { font-size: 15px; font-weight: 500; }
+
+    /* ── Risk-level colours (used on Overall Risk span) ── */
+    .risk-low      { color: #22c55e; font-weight: 600; text-transform: uppercase; }
+    .risk-moderate  { color: #f97316; font-weight: 600; text-transform: uppercase; }
+    .risk-high      { color: #ef4444; font-weight: 600; text-transform: uppercase; }
+    .risk-severe    { color: #dc2626; font-weight: 600; text-transform: uppercase; }
+    .risk-unknown   { color: #64748b; font-weight: 600; text-transform: uppercase; }
+
+    /* ── Section ── */
+    .section { margin-bottom: 28px; }
+    .section-title { font-size: 18px; margin: 0 0 16px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+
+    /* ── Score Cards ── */
+    .scores-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+    .score-card { text-align: center; padding: 16px 10px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; }
+    .score-card.normal, .score-card.minimal  { border-left: 4px solid #22c55e; }
+    .score-card.mild    { border-left: 4px solid #facc15; }
+    .score-card.moderate{ border-left: 4px solid #f97316; }
+    .score-card.severe, .score-card.high, .score-card.extremely_severe { border-left: 4px solid #ef4444; }
+    .score-value    { font-size: 28px; font-weight: 700; color: #334155; }
+    .score-label    { font-size: 12px; color: #64748b; margin: 4px 0; }
+    .score-severity { font-size: 13px; font-weight: 600; text-transform: capitalize; }
+
+    /* ── Vitals ── */
+    .vitals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .vital-item  { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; }
+    .vital-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: .5px; }
+    .vital-value { font-size: 20px; font-weight: 600; margin: 4px 0 8px; }
+    .vital-status { display: inline-block; font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+    .vital-status.normal   { background: #dcfce7; color: #166534; }
+    .vital-status.elevated { background: #fef9c3; color: #854d0e; }
+    .vital-status.high     { background: #fee2e2; color: #991b1b; }
+    .vital-status.low      { background: #dbeafe; color: #1e40af; }
+
+    /* ── Emergency ── */
+    .emergency-alert { background: linear-gradient(135deg, #fef2f2, #fff1f2); border: 2px solid #fca5a5; border-radius: 10px; padding: 20px; margin-bottom: 24px; text-align: center; }
+    .emergency-alert h3 { margin: 0 0 8px; color: #dc2626; font-size: 16px; }
+    .emergency-alert p  { margin: 0 0 14px; color: #7f1d1d; font-size: 14px; }
+    .emergency-contacts { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .emergency-btn { display: inline-block; padding: 10px 18px; background: #dc2626; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; }
+
+    /* ── Recommendations ── */
+    .recommendations { display: flex; flex-direction: column; gap: 12px; }
+    .recommendation-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; }
+    .recommendation-item.high   { border-left: 4px solid #ef4444; }
+    .recommendation-item.medium { border-left: 4px solid #f97316; }
+    .recommendation-item.low    { border-left: 4px solid #22c55e; }
+    .recommendation-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .recommendation-title  { font-weight: 600; font-size: 15px; }
+    .recommendation-category { font-size: 12px; color: #64748b; margin-bottom: 6px; }
+    .priority-badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600; text-transform: capitalize; }
+    .priority-badge.high   { background: #fee2e2; color: #991b1b; }
+    .priority-badge.medium { background: #ffedd5; color: #9a3412; }
+    .priority-badge.low    { background: #dcfce7; color: #166534; }
+
+    /* ── Footer ── */
+    .footer { background: #f8fafc; padding: 20px 24px; text-align: center; border-top: 1px solid #e2e8f0; }
+  </style>
+</head>
+
+<body>
+<div class="email-container">
+
+  <div class="header">
+    <h1>
+      <span class="logo">🧠</span>
+      MindHarbor Mental Health Report
+    </h1>
+    <p>Comprehensive Mental Wellness Assessment</p>
+  </div>
+
+  <div class="content">
+
+    <!-- ================= REPORT META ================= -->
+    <div class="report-meta">
+      <h3>📋 Report Information</h3>
+
+      <div class="meta-grid">
+        <div class="meta-item">
+          <span class="meta-label">Patient Name</span>
+          <span class="meta-value">
+            <%= report.user.username %>
+          </span>
+        </div>
+
+        <div class="meta-item">
+          <span class="meta-label">Generated On</span>
+          <span class="meta-value"><%= date %></span>
+        </div>
+
+        <div class="meta-item">
+          <span class="meta-label">Report ID</span>
+          <span class="meta-value"><%= report._id %></span>
+        </div>
+
+        <div class="meta-item">
+          <span class="meta-label">Overall Risk Level</span>
+          <% var _riskLevel = (report.overallRisk || '').toLowerCase(); %>
+          <% var _riskClass = ['low','moderate','high','severe'].indexOf(_riskLevel) !== -1 ? ('risk-' + _riskLevel) : 'risk-unknown'; %>
+          <span class="meta-value <%= _riskClass %>">
+            <%= report.overallRisk %>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= EMERGENCY ALERT ================= -->
+    <% if (isEmergency) { %>
+      <div class="emergency-alert">
+        <h3>⚠️ Immediate Professional Support Recommended</h3>
+        <p>
+          Your assessment indicates significant mental health concerns that
+          require immediate attention.
+        </p>
+
+        <div class="emergency-contacts">
+          <a href="tel:9152987821" class="emergency-btn">
+            📞 Crisis Helpline: 9152987821
+          </a>
+          <a href="tel:112" class="emergency-btn">
+            🚨 Emergency: 112
+          </a>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- ================= SCORES ================= -->
+    <div class="section">
+      <h2 class="section-title">🧠 Mental Health Assessment Results</h2>
+
+      <div class="scores-grid">
+
+        <div class="score-card <%= report.dass21.depression.severity %>">
+          <div class="score-value"><%= report.dass21.depression.score %></div>
+          <div class="score-label">Depression (DASS-21)</div>
+          <div class="score-severity"><%= report.dass21.depression.severity %></div>
+        </div>
+
+        <div class="score-card <%= report.dass21.anxiety.severity %>">
+          <div class="score-value"><%= report.dass21.anxiety.score %></div>
+          <div class="score-label">Anxiety (DASS-21)</div>
+          <div class="score-severity"><%= report.dass21.anxiety.severity %></div>
+        </div>
+
+        <div class="score-card <%= report.dass21.stress.severity %>">
+          <div class="score-value"><%= report.dass21.stress.score %></div>
+          <div class="score-label">Stress (DASS-21)</div>
+          <div class="score-severity"><%= report.dass21.stress.severity %></div>
+        </div>
+
+        <div class="score-card <%= report.gad7.severity %>">
+          <div class="score-value"><%= report.gad7.score %></div>
+          <div class="score-label">GAD-7</div>
+          <div class="score-severity"><%= report.gad7.severity %></div>
+        </div>
+
+        <div class="score-card <%= report.phq9.severity %>">
+          <div class="score-value"><%= report.phq9.score %></div>
+          <div class="score-label">PHQ-9</div>
+          <div class="score-severity"><%= report.phq9.severity %></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================= VITALS ================= -->
+    <div class="section">
+      <h2 class="section-title">❤️ Health Vitals Analysis</h2>
+
+      <div class="vitals-grid">
+
+        <div class="vital-item">
+          <div class="vital-label">Blood Pressure</div>
+          <div class="vital-value">
+            <%= report.vitals.systolic %>/<%= report.vitals.diastolic %> mmHg
+          </div>
+          <span class="vital-status
+            <%= getVitalStatusClass('bp', report.vitals.systolic, report.vitals.diastolic) %>">
+            <%= getVitalStatusText('bp', report.vitals.systolic, report.vitals.diastolic) %>
+          </span>
+        </div>
+
+        <div class="vital-item">
+          <div class="vital-label">Heart Rate</div>
+          <div class="vital-value"><%= report.vitals.heartRate %> BPM</div>
+          <span class="vital-status
+            <%= getVitalStatusClass('hr', report.vitals.heartRate) %>">
+            <%= getVitalStatusText('hr', report.vitals.heartRate) %>
+          </span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================= RECOMMENDATIONS ================= -->
+    <div class="section">
+      <h2 class="section-title">💡 Personalized Recommendations</h2>
+
+      <div class="recommendations">
+
+        <% if (report.recommendations && report.recommendations.length) { %>
+
+          <% report.recommendations.forEach(rec => { %>
+            <div class="recommendation-item <%= rec.priority %>">
+
+              <div class="recommendation-header">
+                <span class="recommendation-title"><%= rec.title %></span>
+                <span class="priority-badge <%= rec.priority %>">
+                  <%= rec.priority %> priority
+                </span>
+              </div>
+
+              <div class="recommendation-category">
+                <%= rec.category %>
+              </div>
+
+              <p><%= rec.description %></p>
+
+            </div>
+          <% }) %>
+
+        <% } else { %>
+
+          <p style="text-align:center;color:#64748b;font-style:italic;">
+            No specific recommendations at this time.
+          </p>
+
+        <% } %>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================= FOOTER ================= -->
+  <div class="footer">
+    <p style="color:#64748b;font-size:12px;">
+      © <%= new Date().getFullYear() %> MindHarbor. All rights reserved.<br>
+      This email was sent to <%= report.user.email %>.
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

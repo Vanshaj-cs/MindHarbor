@@ -1,15 +1,15 @@
-import { create, find, countDocuments, findOne } from "../models/Mood";
-import { post } from "axios";
+import Mood from "../models/mood.model.js";
+import axios from "axios";
 import FormData from "form-data";
-import { ApiResponse } from "../utils/apiResponse";
-import { ApiError } from "../utils/apiError";
-import { asyncHandler } from "../utils/asyncHandler";
+import { ApiResponse } from "../utils/apiResponse.js";
+import { ApiError } from "../utils/apiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 // Save mood
 export const saveMood = asyncHandler(async (req, res) => {
 	const { value, label, notes, capturedVia } = req.body;
 
-	const mood = await create({
+	const mood = await Mood.create({
 		user: req.user.id,
 		value,
 		label,
@@ -27,12 +27,12 @@ export const getMoodHistory = asyncHandler(async (req, res) => {
 
 	const skip = (page - 1) * limit;
 
-	const moods = await find({ user: req.user.id })
+	const moods = await Mood.find({ user: req.user.id })
 		.sort({ createdAt: -1 })
 		.skip(skip)
 		.limit(limit);
 
-	const total = await countDocuments({ user: req.user.id });
+	const total = await Mood.countDocuments({ user: req.user.id });
 
 	res.status(200).json(
 		new ApiResponse(
@@ -51,7 +51,7 @@ export const getMoodHistory = asyncHandler(async (req, res) => {
 
 // Get recent mood
 export const getRecentMood = asyncHandler(async (req, res) => {
-	const recentMood = await findOne({ user: req.user.id }).sort({
+	const recentMood = await Mood.findOne({ user: req.user.id }).sort({
 		createdAt: -1,
 	});
 
@@ -85,7 +85,7 @@ export const analyzeMood = asyncHandler(async (req, res) => {
 	let prediction;
 
 	try {
-		const mlResponse = await post(mlUrl, formData, {
+		const mlResponse = await axios.post(mlUrl, formData, {
 			headers: {
 				...formData.getHeaders(),
 				"Content-Type": "multipart/form-data",
@@ -120,7 +120,7 @@ export const analyzeMood = asyncHandler(async (req, res) => {
 		};
 	}
 
-	const mood = await create({
+	const mood = await Mood.create({
 		user: req.user.id,
 		value: prediction.value,
 		label: prediction.label,

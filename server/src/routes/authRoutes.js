@@ -57,15 +57,15 @@ const resetRules = [
 ];
 
 // ── Public ────────────────────────────────────────────────────────────────────
-router.post("/register", registerRules, validate, register);
-router.post("/verify-email", codeRules, validate, verifyEmail);
+router.post("/register", ...registerRules, validate, register);
+router.post("/verify-email", ...codeRules, validate, verifyEmail);
 router.post(
   "/resend-verification",
   body("email").isEmail(),
   validate,
   resendVerification,
 );
-router.post("/login", loginRules, validate, login);
+router.post("/login", ...loginRules, validate, login);
 router.post("/refresh", refreshToken);
 router.post("/logout", logout);
 router.post(
@@ -74,7 +74,7 @@ router.post(
   validate,
   forgotPassword,
 );
-router.post("/reset-password", resetRules, validate, resetPassword);
+router.post("/reset-password", ...resetRules, validate, resetPassword);
 
 // ── Google OAuth ──────────────────────────────────────────────────────────────
 router.get("/google", googleAuth);

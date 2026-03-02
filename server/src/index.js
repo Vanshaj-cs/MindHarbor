@@ -10,9 +10,10 @@ import authRoutes from "./routes/authRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import studyPlannerRoutes from "./routes/studyPlannerRoutes.js";
 import errorHandler from "./middleware/errorHandler.js";
+import moodRoutes from "./routes/mood.routes.js";
+import mentalHealthRoutes from "./routes/mentalHealth.routes.js";
 
 const app = express();
-
 // ── Session (only used during Google OAuth flow to hold nonce + state) ─────────
 app.use(
   session({
@@ -34,6 +35,8 @@ app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/planner", studyPlannerRoutes);
+app.use("/api/mood", moodRoutes);
+app.use("/api/mental-health", mentalHealthRoutes);
 
 // ── Health Check ──────────────────────────────────────────────────────────────
 app.get("/health", (_req, res) =>
