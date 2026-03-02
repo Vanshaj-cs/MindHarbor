@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Eye,
   EyeOff,
-  Heart,
   Mail,
   Lock,
   User,
@@ -12,7 +11,7 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/Authcontext";
 import { authService } from "../services/authService";
 
 const GoogleIcon = () => (
@@ -310,8 +309,12 @@ const Signup = () => {
 
         {/* Logo */}
         <div className="flex items-center gap-3 relative z-10">
-          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
-            <Heart size={20} className="text-white" />
+          <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center shadow-lg p-1.5">
+            <img
+              src="/harbor.png"
+              alt="Mind Harbor"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
             <h1 className="text-xl font-bold text-text-primary tracking-tight">
@@ -380,8 +383,12 @@ const Signup = () => {
       <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 lg:px-14 overflow-y-auto">
         {/* Mobile logo */}
         <div className="flex items-center gap-2 mb-8 lg:hidden">
-          <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-            <Heart size={18} className="text-white" />
+          <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center p-1.5">
+            <img
+              src="/harbor.png"
+              alt="Mind Harbor"
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1 className="text-lg font-bold text-text-primary">Mind Harbor</h1>
         </div>

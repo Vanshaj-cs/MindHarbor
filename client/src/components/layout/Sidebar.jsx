@@ -8,7 +8,6 @@ import {
   CalendarHeart,
   User,
   Settings,
-  Heart,
   X,
   Calendar,
 } from "lucide-react";
@@ -48,8 +47,12 @@ const Sidebar = ({ isOpen, onClose }) => {
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5">
-          <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-            <Heart size={18} className="text-white" />
+          <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center p-1.5">
+            <img
+              src="/harbor.png"
+              alt="Mind Harbor"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
             <h1 className="text-lg font-bold text-text-primary tracking-tight">
