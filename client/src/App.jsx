@@ -45,6 +45,10 @@ const App = () => {
               path="counselor"
               element={<ComingSoon title="Counselor Booking" />}
             />
+            <Route
+              path="/planner"
+              element={<ComingSoon title="Study Planner" />}
+            />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
